@@ -82,8 +82,19 @@ class GaussianPolicy(nn.Module):
         self.action_bias = self.action_bias.to(device)
         return super(GaussianPolicy, self).to(device)
 
+# test passed
+def save_flattened_params(models):
+    pdata = []
+    for model in models:
+        param = []
+        for key in model.keys():
+            param.append(model[key].data.reshape(-1))
+        param = torch.cat(param, 0)
+        pdata.append(param)
+    batch = torch.stack(pdata)
+    return batch
 
-
+# test passed
 def load_flattened_params(flattened_params, model):
     layer_idx = 0
     for name, param in model.named_parameters():
