@@ -1,0 +1,56 @@
+device:
+  cuda_visible_devices:  "0,1,2,3,4,5,6"
+  id: 7
+  cuda: cuda:${device.id}
+
+seed: 620
+
+model:
+  _target_: encoder.small
+  in_dim: 22664
+  input_noise_factor: 0.001
+  latent_noise_factor: 0.1
+
+data:
+  batch_size: 128
+  num_workers: 4
+  data_root: data/data.pt
+
+train:
+  optimizer:
+    _target_: torch.optim.AdamW
+    lr: 1e-3
+    weight_decay: 2e-6
+
+  lr_scheduler:
+
+  loss_func:
+    _target_: torch.nn.MSELoss
+    reduction: sum
+
+  trainer:
+    _target_:  pytorch_lightning.trainer.Trainer
+    strategy: 'auto'
+    max_epochs: 30000
+    check_val_every_n_epoch:
+    val_check_interval : 300
+    log_every_n_steps: 10
+    limit_val_batches: 1
+
+    enable_model_summary: false
+
+    callbacks:
+    - _target_: pytorch_lightning.callbacks.ModelCheckpoint
+      filename: "{epoch}-{loss:.4f}"
+      monitor: 'loss'
+      mode: 'min'
+      save_top_k: 3
+      verbose: true
+  
+    callbacks:
+      early_stopping:
+        monitor: "val_loss"
+        min_delta: 0.001
+        patience: 5
+        verbose: True
+        mode: "min"
