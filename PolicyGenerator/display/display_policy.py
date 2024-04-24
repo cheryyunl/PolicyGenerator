@@ -14,11 +14,12 @@ from display.envs.make_env import build_environment
 from display.utils import param_to_policy
 
 
-def display_model(ckpt, config=mw_config):
+def display_model(ckpt, env_name):
+    config = mw_config
     config.hidden_size = 128
     config.seed = 620
 
-    env_name = config.env_name
+    config.env_name = env_name + '-v2-goal-observable'
     env = build_environment(config)
     torch.manual_seed(config.seed)
 
