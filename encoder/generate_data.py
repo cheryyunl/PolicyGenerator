@@ -26,4 +26,4 @@ def load_checkpoints(checkpoint_root, in_dim=22664):
     return data
 
 data = load_checkpoints(checkpoint_root)
-torch.save(data, "data.pt")
+torch.save(data, "PolicyGenerator/encoder/data.pt")

@@ -170,7 +170,7 @@ class ODEncoder2Decoder(nn.Module):
 
 
 class small(ODEncoder2Decoder):
-    def __init__(self, in_dim, input_noise_factor, latent_noise_factor):
+    def __init__(self, in_dim=22664, input_noise_factor=0.001, latent_noise_factor=0.1):
         fold_rate = 3
         kernel_size = 3
         enc_channel_list = [2, 2, 2, 2]
@@ -178,9 +178,9 @@ class small(ODEncoder2Decoder):
         super(small, self).__init__(in_dim, kernel_size, fold_rate, input_noise_factor, latent_noise_factor, enc_channel_list, dec_channel_list)
 
 class medium(ODEncoder2Decoder):
-    def __init__(self, in_dim, input_noise_factor, latent_noise_factor):
-        fold_rate = 5
-        kernel_size = 5
+    def __init__(self, in_dim=22664, input_noise_factor=0.001, latent_noise_factor=0.1):
+        fold_rate = 3
+        kernel_size = 3
         enc_channel_list = [4, 4, 4, 4]
         dec_channel_list = [4, 256, 256, 8]
         super(medium, self).__init__(in_dim, kernel_size, fold_rate, input_noise_factor, latent_noise_factor, enc_channel_list, dec_channel_list)

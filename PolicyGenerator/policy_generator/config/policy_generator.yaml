@@ -4,9 +4,9 @@ task: policy_generator
 task_name: policy_generator
 shape_meta: &shape_meta
   trajectory:
-    shape: [100]
+    shape: [128]
   params:
-    shape: [10000]
+    shape: [2048]
 
 exp_name: "debug"
 
@@ -25,10 +25,6 @@ policy:
   - 512
   - 1024
   - 2048
-  crop_shape:
-  - 80
-  - 80
-  encoder_output_dim: 64
   kernel_size: 5
   n_groups: 8
   num_trajectory: ${num_trajectory}
@@ -59,14 +55,14 @@ policy:
 
 dataloader:
   batch_size: 128
-  num_workers: 8
+  num_workers: 4
   shuffle: True
   pin_memory: True
   persistent_workers: False
 
 val_dataloader:
   batch_size: 128
-  num_workers: 8
+  num_workers: 4
   shuffle: False
   pin_memory: True
   persistent_workers: False
@@ -76,11 +72,11 @@ optimizer:
   lr: 1.0e-4
   betas: [0.95, 0.999]
   eps: 1.0e-8
-  weight_decay: 1.0e-6
+  weight_decay: 3.0e-4
 
 training:
   device: "cuda:0"
-  seed: 42
+  seed: 3407
   debug: False
   resume: True
   lr_scheduler: cosine

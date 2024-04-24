@@ -6,9 +6,9 @@ import torch.nn.functional as F
 import einops
 from einops.layers.torch import Rearrange
 from termcolor import cprint
-from diffusion_policy_3d.model.diffusion.conv1d_components import (
+from policy_generator.model.diffusion.conv1d_components import (
     Downsample1d, Upsample1d, Conv1dBlock)
-from diffusion_policy_3d.model.diffusion.positional_embedding import SinusoidalPosEmb
+from policy_generator.model.diffusion.positional_embedding import SinusoidalPosEmb
 
 
 
@@ -151,9 +151,9 @@ class ConditionalUnet1D(nn.Module):
         input_dim,
         local_cond_dim=None,
         global_cond_dim=None,
-        diffusion_step_embed_dim=256,
+        diffusion_step_embed_dim=128,
         down_dims=[256,512,1024],
-        kernel_size=3,
+        kernel_size=5,
         n_groups=8,
         condition_type='film',
         use_down_condition=True,

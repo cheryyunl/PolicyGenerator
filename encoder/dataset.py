@@ -9,32 +9,36 @@ class Dataset(pl.LightningDataModule):
     def __init__(self, cfg):
         super().__init__()
         self.cfg = cfg
-        self.batch_size = getattr(cfg, 'batch_size', 64)
-        self.num_workers = getattr(cfg, 'num_workers', 4)
-        self.data_root = getattr(self.cfg, 'data_root', './data')
+        self.batch_size = getattr(cfg, 'batch_size')
+        self.num_workers = getattr(cfg, 'num_workers')
+        self.data_root = getattr(self.cfg, 'data_root')
+        print("data root", self.data_root)
 
         # Check the root path
-        assert os.path.exists(self.data_root), f'{self.data_root} not exists'
+        # assert os.path.exists(self.data_root), f'{self.data_root} not exists'
 
-        if os.path.isfile(self.data_root):
-            state = torch.load(self.data_root, map_location='cpu')
-            self.params = state['param']
-            # self.sr = state['success_rate']
+        state = torch.load(self.data_root)
+        self.params = state['param']
+        self.task = state['task']
+        self.traj = state['traj']
+        self.setup
 
     def __len__(self):
         return len(self.params)
 
     def __getitem__(self, idx):
-        params = self.params[idx]
-        # sr = self.sr[idx]
-        return params
+        param = self.params[idx]
+        traj = self.traj[idx]
+        task = self.task[idx]
+        return param, traj, task
 
     @property
-    def dataset(self):
-        train_size = int(0.85 * len(self))
-        val_size = int(0.10 * len(self))
-        test_size = len(self) - train_size - val_size
-
+    def setup(self):
+        train_size = int(0.9 * len(self))
+        val_size = int(0.09 * len(self))
+        test_size = test_size = len(self) - train_size - val_size
+        print("train_size:", train_size)
+        print("val_size:", val_size)
         # Split the dataset
         self.train_dataset, self.val_dataset, self.test_dataset = random_split(
             self, [train_size, val_size, test_size]

@@ -1,0 +1,6 @@
+dataset/**
+
+PolicyGenerator/data/**
+
+PolicyGenerator/pretrain_model/**
+*.log

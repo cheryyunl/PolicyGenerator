@@ -5,8 +5,12 @@ import abc
 import hydra
 import torch.optim.lr_scheduler
 import warnings
+from model import small, medium
+from model_proj import EncoderDecoder
 from typing import Optional, Union, List, Dict, Any, Sequence
 from omegaconf import DictConfig, OmegaConf
+from torch.optim.lr_scheduler import CosineAnnealingWarmRestarts
+import wandb
 
 class BaseSystem(pl.LightningModule, abc.ABC):
     def __init__(self, cfg):
@@ -20,20 +24,21 @@ class BaseSystem(pl.LightningModule, abc.ABC):
         self.loss_func = self.build_loss_func()
 
     def training_step(self, batch, **kwargs):
-        params, sr = batch
         optimizer = self.optimizers()
-        loss = self.forward(params, **kwargs)
+        param, traj, task = batch
+        loss = self.forward(param, **kwargs)
         optimizer.zero_grad()
         self.manual_backward(loss)
         optimizer.step()
 
         if hasattr(self, 'lr_scheduler'):
             self.lr_scheduler.step()
-
+        wandb.log({"train/loss": loss})
         return {'loss': loss}
 
     def build_model(self, **kwargs):
-        model = hydra.utils.instantiate(self.model_cfg)
+        n_embd = self.model_cfg.n_embd
+        model = EncoderDecoder(n_embd)
         return model
 
     def build_loss_func(self):
@@ -45,23 +50,21 @@ class BaseSystem(pl.LightningModule, abc.ABC):
         parameters = self.model.parameters()
         self.optimizer = hydra.utils.instantiate(self.train_cfg.optimizer, parameters)
 
-        if 'lr_scheduler' in self.train_cfg and self.train_cfg.lr_scheduler is not None:
-            self.lr_scheduler = hydra.utils.instantiate(self.train_cfg.lr_scheduler)
+        self.lr_scheduler = CosineAnnealingWarmRestarts(self.optimizer, T_0=10, T_mult=2)
 
         return self.optimizer
 
     def validation_step(self, batch, batch_idx, **kwargs):
-        params, sr = batch
-        outputs = self.model(params) 
-        val_loss = self.loss_func(outputs, params) 
+        param, traj, task = batch
+        embed = self.model.encode(param) 
+        outputs = self.model.decode(embed)
+        val_loss = self.loss_func(outputs, param) 
+        wandb.log({"val/loss": val_loss.detach()})
+        self.log('val_loss', val_loss.cpu().detach().mean().item(), on_epoch=True, prog_bar=True, logger=True)
         return {'val_loss': val_loss}
     
     def test_step(self, batch, batch_idx, **kwargs):
-        params, sr = batch
-        outputs = self.model(params) 
-        test_loss = self.loss_func(outputs, params)
-        self.log("test_loss", test_loss, on_step=False, on_epoch=True) 
-        return {"test_loss": test_loss}
+        pass
 
 
     @abc.abstractmethod
