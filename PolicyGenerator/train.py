@@ -275,7 +275,7 @@ class Workspace:
             self.epoch += 1
             del step_log
 
-        self.save_checkpoint(tag = 'last'):
+        self.save_checkpoint(tag = 'last')
         wandb.finish()
 
     def save_checkpoint(self, tag = 'regular'):
