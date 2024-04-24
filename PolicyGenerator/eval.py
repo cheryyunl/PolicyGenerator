@@ -47,8 +47,8 @@ class EvalWorkspace:
 
         self.normalizer = LinearNormalizer()
 
-        ckpt_path = './pretrain_model/best.torch'
-        encoder_path = './pretrain_model/param_encoder.ckpt'
+        ckpt_path = '/home/cheryll/PolicyGenerator/PolicyGenerator/data/outputs/2024.04.24/11.15.05/outputs/generator-2024-04-24_11/best.torch'
+        encoder_path = '/home/cheryll/PolicyGenerator/PolicyGenerator/pretrain_model/param_encoder.ckpt'
 
         self.param_encoder = EncoderDecoder(1024, 1, 1, 0.0001, 0.001)
         self.load_checkpoint(ckpt_path, evaluate=True)
@@ -56,31 +56,24 @@ class EvalWorkspace:
 
         self.model.set_normalizer(self.normalizer)
 
-    def eval_param(self, policy, param):
-        x = param.reshape(-1, 2, 1024)
-        param = self.param_encoder.decode(x).squeeze(0)
-        avg_reward, avg_success, avg_success_time = display(param)
-
-    def rollout(self, data):
+    def rollout(self, data, env):
         nparam = data['param']
         ntraj = data['traj']
 
 
         eval_dict = {'traj': ntraj}
         pred_param = self.model.predict_paremeters(eval_dict)
-        pred_param = pred_param.reshape(-1, 2, 1024)
-
-        param_x = nparam.reshape(-1, 2, 1024)
-        param = self.param_encoder.decode(param_x)
+        nparam = nparam.reshape(-1, 2, 1024)
+        param = self.param_encoder.decode(nparam)
 
         print("shape of param: ", param.shape)
-        avg_reward, avg_success, avg_success_time = display_model(param)
+        avg_reward, avg_success, avg_success_time = display_model(param, env)
 
         print("After diffusion generation.")
 
         gen_param = self.param_encoder.decode(pred_param)
         print("shape of generated param: ", gen_param.shape)
-        gen_avg_reward, gen_avg_success, gen_avg_success_time = display_model(gen_param)
+        gen_avg_reward, gen_avg_success, gen_avg_success_time = display_model(gen_param, env)
 
 
         print("Avg. Reward: {}, Avg. Success: {}, Avg Length: {}".format(round(avg_reward, 2), round(avg_success,2), round(avg_success_time,2)))
@@ -116,9 +109,9 @@ class EvalWorkspace:
 
 def main(cfg):
     workspace = EvalWorkspace(cfg)
-    data_path = './param_data/window_open.pt'
+    data_path = '/home/cheryll/PolicyGenerator/PolicyGenerator/param_data/process_drawer_open.pt'
     data = torch.load(data_path)
-    workspace.rollout(data)
+    workspace.rollout(data, env='drawer-open')
 
 if __name__ == "__main__":
     main()
