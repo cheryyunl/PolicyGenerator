@@ -42,3 +42,18 @@ drawer-open:
 Avg. Reward: 4343.84, Avg. Success: 0.98, Avg Length: 57.0
 
 After Generated, Avg. Reward: 4226.56, Avg. Success: 0.96, Avg Length: 70.8
+
+
+
+| Success Rate | Decoded params | Generated params (best) | Generated params (last-model) |
+|---|---|---|---|
+| window-open | 1.0 | 0.93 | 0.96 |
+| door-open   | 0.86 | 0.84 | 0.85 |
+| drawer-open | 0.98 | 0.94 | 0.96 |
+
+
+| Avg Reward | Decoded params | Generated params (best) | Generated params (last-model) |
+|---|---|---|---|
+| window-open | 4136.62 | 3725.92 | 3907.1 |
+| door-open   | 3790.41 | 3530.95 | 3545.89 |
+| drawer-open | 4343.84 | 4164.63 | 4226.56 |
