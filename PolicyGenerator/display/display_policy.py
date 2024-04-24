@@ -29,6 +29,10 @@ def display_model(ckpt, config=mw_config):
     avg_success = 0.
     avg_success_time = 0.
 
+    test_reward = 0.
+    test_success = 0.
+    test_success_time = 0.
+
     ckpt_num = len(ckpt)
     print("{} parameters evaluate".format(ckpt_num))
 
@@ -37,9 +41,9 @@ def display_model(ckpt, config=mw_config):
         agent.policy.load_state_dict(state_dict)
 
 
-        test_reward = 0.
-        test_success = 0.
-        test_success_time = 0.
+        eval_reward_list = []
+        eval_success_list = []
+        eval_success_time_list = []
 
         for i in range(config.eval_episodes):
             state = env.reset()
@@ -55,19 +59,19 @@ def display_model(ckpt, config=mw_config):
                 if 'success' in info.keys():
                     success |= bool(info["success"])
 
-                if not success:
-                    first_success_time += 1
+                    if not success:
+                        first_success_time += 1
                     
                 episode_reward += reward
                 state = next_state
             
-            test_success += float(info['success'])
-            test_reward += episode_reward
-            test_success_time += first_success_time
+            eval_success_list.append(success)
+            eval_reward_list.append(episode_reward)
+            eval_success_time_list.append(first_success_time)
 
-        test_reward /= config.eval_episodes
-        test_success /= config.eval_episodes
-        test_success_time /= config.eval_episodes
+        test_reward = np.average(eval_reward_list)
+        test_success = np.average(eval_success_list)
+        test_success_time = np.average(eval_success_time_list)
         print("----------------------------------------")
         print("Env: {}, Test Episodes: {}, Avg. Reward: {}, Avg. Success: {}".format(config.env_name, config.eval_episodes, round(test_reward, 2), round(test_success,2)))
         print("----------------------------------------")
