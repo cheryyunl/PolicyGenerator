@@ -116,7 +116,7 @@ class EvalWorkspace:
 
 def main(cfg):
     workspace = EvalWorkspace(cfg)
-    data_path = './test_data/window_open.pt'
+    data_path = './param_data/window_open.pt'
     data = torch.load(data_path)
     workspace.rollout(data)
 
