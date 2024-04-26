@@ -43,10 +43,13 @@ class PolicyGenerator(BasePolicy):
         parameters_shape = shape_meta['params']['shape']
         trajectory_shape = shape_meta['trajectory']['shape']
         self.parameters_shape = parameters_shape
-        parameters_dim = parameters_shape[0]
         trajectory_dim = trajectory_shape[0]
-        if len(parameters_shape) != 1:
-            raise NotImplementedError(f"Unsupported action shape {parameters_shape}")
+        if len(parameters_shape) == 1:
+            parameters_dim = parameters_shape[0]
+        elif len(parameters_shape) == 2:
+            parameters_dim = parameters_shape[0] * parameters_shape[1]
+        else: 
+            raise NotImplementedError(f"Unsupported parameter shape {parameters_shape}")
 
         # create diffusion model
         input_dim = parameters_dim
@@ -165,7 +168,7 @@ class PolicyGenerator(BasePolicy):
         else:
             # reshape back to B, Do
             global_cond = ntraj.reshape(B, -1)
-        cond_data = torch.zeros(size=(B, 1, Da), device=device, dtype=dtype)
+        cond_data = torch.zeros(size=(B, T, Da), device=device, dtype=dtype)
         cond_mask = torch.zeros_like(cond_data, dtype=torch.bool)
         # run sampling
         nsample = self.conditional_sample(
@@ -175,6 +178,7 @@ class PolicyGenerator(BasePolicy):
             **self.kwargs)
         
         # unnormalize prediction
+        nsample = nsample.reshape(-1, 2, 1024)
         params_pred = self.normalizer['param'].unnormalize(nsample)
 
         # result = {'param': parameters_pred}
@@ -191,9 +195,10 @@ class PolicyGenerator(BasePolicy):
         batch = self.normalizer.normalize(batch)
         ntraj = batch['traj']
         nparameters = batch['param']
+        horizon = 1
         
         batch_size = nparameters.shape[0]
-        nparameters = nparameters.reshape(batch_size, 1, self.parameters_dim)
+        nparameters = nparameters.reshape(batch_size, horizon, self.parameters_dim)
         global_cond = None
         parameters = nparameters
         cond_data = parameters
