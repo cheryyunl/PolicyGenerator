@@ -6,7 +6,7 @@ shape_meta: &shape_meta
   trajectory:
     shape: [128]
   params:
-    shape: [2048]
+    shape: [2, 1024]
 
 exp_name: "policy_generator"
 
@@ -82,12 +82,14 @@ train:
   max_train_steps: null
   max_val_steps: null
   tqdm_interval_sec: 1.0
+  finetune: False
+  pretrain_model: './pretrain_model/last-model.torch'
 
 logging:
   group: ${exp_name}
   id: null
   mode: online
-  name: ${train.seed}_${data.batch_size}_${optimizer.lr}
+  name: ${train.seed}_${data.batch_size}_${optimizer.lr}_${policy.num_inference_steps}
   project: policy_generator
   resume: true
   tags:
