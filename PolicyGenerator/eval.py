@@ -47,14 +47,15 @@ class EvalWorkspace:
 
         self.normalizer = LinearNormalizer()
 
-        ckpt_path = '/home/cheryll/PolicyGenerator/PolicyGenerator/data/outputs/2024.04.24/11.15.05/outputs/generator-2024-04-24_11/best.torch'
-        encoder_path = '/home/cheryll/PolicyGenerator/PolicyGenerator/pretrain_model/param_encoder.ckpt'
+        ckpt_path = './pretrain_model/last-model.torch'
+        encoder_path = './pretrain_model/param_encoder.ckpt'
 
         self.param_encoder = EncoderDecoder(1024, 1, 1, 0.0001, 0.001)
         self.load_checkpoint(ckpt_path, evaluate=True)
         self.load_encoder(encoder_path, evaluate=True)
 
         self.model.set_normalizer(self.normalizer)
+        self.model.eval()
 
     def rollout(self, data, env):
         nparam = data['param']
@@ -109,9 +110,9 @@ class EvalWorkspace:
 
 def main(cfg):
     workspace = EvalWorkspace(cfg)
-    data_path = '/home/cheryll/PolicyGenerator/PolicyGenerator/param_data/process_drawer_open.pt'
+    data_path = './param_data/process_window_open.pt'
     data = torch.load(data_path)
-    workspace.rollout(data, env='drawer-open')
+    workspace.rollout(data, env='window-open')
 
 if __name__ == "__main__":
     main()
