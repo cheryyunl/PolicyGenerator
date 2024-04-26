@@ -46,15 +46,15 @@ class Workspace:
         # configure model
         self.model: PolicyGenerator  = hydra.utils.instantiate(cfg.policy)
 
+        self.optimizer = hydra.utils.instantiate(
+            cfg.optimizer, params=self.model.parameters())
+
         self.ema_model: PolicyGenerator  = None
         if cfg.train.use_ema:
             try:
                 self.ema_model = copy.deepcopy(self.model)
             except: # minkowski engine could not be copied. recreate it
                 self.ema_model = hydra.utils.instantiate(cfg.policy)
-
-        self.optimizer = hydra.utils.instantiate(
-            cfg.optimizer, params=self.model.parameters())
 
         # configure training state
         self.global_step = 0
@@ -93,6 +93,10 @@ class Workspace:
                 print(f"Resuming from checkpoint {lastest_ckpt_path}")
                 self.load_checkpoint(path=lastest_ckpt_path)
 
+        if cfg.train.finetune:
+            pretrain_path = cfg.train.pretrain_model
+            self.load_checkpoint(pretrain_path, evaluate=False)
+
         dataset = Dataset(cfg.data) 
         normalizer = dataset.get_normalizer()
         train_dataloader = dataset.train_dataloader()
@@ -128,7 +132,7 @@ class Workspace:
         print(f"[WandB] name: {cfg.logging.name}")
         print("-----------------------------")
 
-        experiment_name = cfg.logging.name
+        experiment_name = cfg.logging.name + datetime.datetime.now().strftime("%Y-%m-%d_%H")
         run_id = '{}-{}-{}-{}'.format(cfg.train.seed, cfg.optimizer.lr, cfg.data.batch_size, datetime.datetime.now().strftime("%Y-%m-%d_%H"))
 
         wandb_run = wandb.init(
@@ -249,12 +253,6 @@ class Workspace:
                         # log epoch average validation loss
                         step_log['val_loss'] = val_loss
                         self.val_score = val_loss
-            
-            # test_traj = batch['traj']
-            # test_result = self.predict(test_traj)
-            # print(test_result['param'].shape)
-            # run diffusion sampling on a training batch
-            # pass
 
             # checkpoint
             if (self.epoch % cfg.train.checkpoint_every) == 0:
@@ -288,25 +286,24 @@ class Workspace:
             if self.val_score < self.best_score:
                 self.best_score = self.val_score
                 ckpt_path = self.output_dir  + '/' + 'best.torch'
-                print(f'Saving the best model with {self.val_score} on {self.epoch}')
+                print(f'Saving the best model with val loss={self.val_score} on {self.epoch}')
                 torch.save({'model': self.model.state_dict(),
                             'optimizer': self.optimizer.state_dict(),
                             'normalizer': self.normalizer.state_dict()}, ckpt_path)
         elif tag == 'last':
-            print(f'Saving the last model with {self.val_score} on {self.epoch}')
+            print(f'Saving the last model with val loss={self.val_score} on {self.epoch}')
             ckpt_path = self.output_dir  + '/' + 'last-model.torch'
             torch.save({'model': self.model.state_dict(),
                         'optimizer': self.optimizer.state_dict(),
                         'normalizer': self.normalizer.state_dict()}, ckpt_path)
 
-    def load_checkpoint(self, evaluate=False):
-        ckpt_path = self.output_dir + '/' + 'best.torch'
+    def load_checkpoint(self, ckpt_path, evaluate=True):
         print('Loading models from {}'.format(ckpt_path))
         if ckpt_path is not None:
             checkpoint = torch.load(ckpt_path)
             self.model.load_state_dict(checkpoint['model'])
             self.optimizer.load_state_dict(checkpoint['optimizer'])
-            self.normalizer.load_state_dict(checkpoint['normalizer'])
+            # self.normalizer.load_state_dict(checkpoint['normalizer'])
 
             if evaluate:
                 self.model.eval()
