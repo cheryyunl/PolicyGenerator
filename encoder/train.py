@@ -4,9 +4,8 @@ import torch
 import numpy as np
 import torch.nn as nn
 import pytorch_lightning as pl
-from model import small
 from dataset import Dataset
-from system import Encoder
+from encoder import Encoder
 from pytorch_lightning import Trainer
 import wandb
 from pytorch_lightning.loggers import WandbLogger

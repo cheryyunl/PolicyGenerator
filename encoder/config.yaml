@@ -13,7 +13,7 @@ model:
 data:
   batch_size: 128
   num_workers: 4
-  data_root: "./dataset/data.pt"
+  data_root: "/home/cheryll/PolicyGenerator/dataset/unseen_data.pt"
 
 train:
   optimizer:
@@ -22,6 +22,8 @@ train:
     weight_decay: 5e-3
 
   lr_scheduler:
+  finetune: True
+  pretrain_model: '/home/cheryll/PolicyGenerator/PolicyGenerator/pretrain_model/param_encoder.ckpt'
 
   loss_func:
     _target_: torch.nn.MSELoss
@@ -30,7 +32,7 @@ train:
   trainer:
     _target_:  pytorch_lightning.trainer.Trainer
     strategy: 'auto'
-    max_epochs: 10000
+    max_epochs: 200
     check_val_every_n_epoch: True
     val_check_interval: 
     log_every_n_steps: 10

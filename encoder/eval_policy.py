@@ -8,6 +8,7 @@ import os
 import sys
 from envs.make_env import build_environment
 from configs.default_config import mw_config
+from model_proj import EncoderDecoder
 
 LOG_SIG_MAX = 2
 LOG_SIG_MIN = -20
