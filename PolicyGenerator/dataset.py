@@ -16,6 +16,8 @@ class Dataset(pl.LightningDataModule):
         # Check the root path
         assert os.path.exists(self.data_root), f'{self.data_root} not exists'
         self.data = torch.load(self.data_root, map_location='cpu')
+        if len(self.data['param'].shape) == 2:
+            self.data['param'] = self.data['param'].reshape(-1, 2, 1024)
         self.setup
 
     def __len__(self):

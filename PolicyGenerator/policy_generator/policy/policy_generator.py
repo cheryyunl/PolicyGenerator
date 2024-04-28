@@ -44,10 +44,11 @@ class PolicyGenerator(BasePolicy):
         trajectory_shape = shape_meta['trajectory']['shape']
         self.parameters_shape = parameters_shape
         trajectory_dim = trajectory_shape[0]
+        print("parameters_shape: ", parameters_shape)
         if len(parameters_shape) == 1:
             parameters_dim = parameters_shape[0]
         elif len(parameters_shape) == 2:
-            parameters_dim = parameters_shape[0] * parameters_shape[1]
+            parameters_dim = parameters_shape[1]
         else: 
             raise NotImplementedError(f"Unsupported parameter shape {parameters_shape}")
 
@@ -103,9 +104,8 @@ class PolicyGenerator(BasePolicy):
         
     # ========= inference  ============
     def conditional_sample(self, 
-            condition_data, condition_mask,
-            condition_data_pc=None, condition_mask_pc=None,
-            local_cond=None, global_cond=None,
+            parameters_shape,
+            global_cond=None,
             generator=None,
             # keyword arguments to scheduler.step
             **kwargs
@@ -115,16 +115,15 @@ class PolicyGenerator(BasePolicy):
 
 
         parameters = torch.randn(
-            size=condition_data.shape, 
-            dtype=condition_data.dtype,
-            device=condition_data.device)
+            size=parameters_shape, 
+            dtype=self.dtype,
+            device=self.device)
 
         # set step values
         scheduler.set_timesteps(self.num_inference_steps)
 
 
         for t in scheduler.timesteps:
-            parameters[condition_mask] = condition_data[condition_mask]
             model_output = model(sample=parameters,
                                 timestep=t, 
                                 local_cond=None,
@@ -133,7 +132,6 @@ class PolicyGenerator(BasePolicy):
             # compute previous image: x_t -> x_t-1
             parameters = scheduler.step(
                 model_output, t, parameters, ).prev_sample
-        parameters[condition_mask] = condition_data[condition_mask]   
 
 
         return parameters
@@ -168,17 +166,15 @@ class PolicyGenerator(BasePolicy):
         else:
             # reshape back to B, Do
             global_cond = ntraj.reshape(B, -1)
-        cond_data = torch.zeros(size=(B, T, Da), device=device, dtype=dtype)
-        cond_mask = torch.zeros_like(cond_data, dtype=torch.bool)
+        # cond_data = torch.zeros(size=(B, 1, Da), device=device, dtype=dtype)
         # run sampling
         nsample = self.conditional_sample(
-            cond_data,
-            cond_mask,
+            (B, 2, 1024),
             global_cond=global_cond,
             **self.kwargs)
         
         # unnormalize prediction
-        nsample = nsample.reshape(-1, 2, 1024)
+        nsample.reshape(-1, 2, 1024)
         params_pred = self.normalizer['param'].unnormalize(nsample)
 
         # result = {'param': parameters_pred}
@@ -195,10 +191,9 @@ class PolicyGenerator(BasePolicy):
         batch = self.normalizer.normalize(batch)
         ntraj = batch['traj']
         nparameters = batch['param']
-        horizon = 1
         
         batch_size = nparameters.shape[0]
-        nparameters = nparameters.reshape(batch_size, horizon, self.parameters_dim)
+        # nparameters = nparameters.reshape(batch_size, 1, self.parameters_dim)
         global_cond = None
         parameters = nparameters
         cond_data = parameters
@@ -210,12 +205,8 @@ class PolicyGenerator(BasePolicy):
             # reshape back to B, Do
             global_cond = ntraj.reshape(batch_size, -1)
 
-        cond_mask = torch.zeros_like(cond_data, dtype=torch.bool)
-
-        condition_mask = self.mask_generator(parameters.shape)
         # Sample noise that we'll add to the images
         noise = torch.randn(parameters.shape, device=parameters.device)
-
         
         batch_size = parameters.shape[0]
         # Sample a random timestep for each image
@@ -229,10 +220,6 @@ class PolicyGenerator(BasePolicy):
         noisy_parameters = self.noise_scheduler.add_noise(
             parameters, noise, timesteps)
 
-        # compute loss mask
-        loss_mask = ~condition_mask
-
-        noisy_parameters[condition_mask] = cond_data[condition_mask]
         # Predict the noise residual
         pred = self.model(sample=noisy_parameters, 
                         timestep=timesteps, local_cond = None,
@@ -254,13 +241,8 @@ class PolicyGenerator(BasePolicy):
             target = v_t
         else:
             raise ValueError(f"Unsupported prediction type {pred_type}")
-
-        loss = F.mse_loss(pred, target, reduction='mean')
-        loss = loss * loss_mask.type(loss.dtype)
-        loss = reduce(loss, 'b ... -> b (...)', 'mean')
-        loss = loss.mean()
         
-
+        loss = F.mse_loss(pred, target, reduction='mean')
         loss_dict = {
                 'loss': loss.item(),
             }

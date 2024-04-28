@@ -41,7 +41,7 @@ policy:
     prediction_type: sample
 
 
-  num_inference_steps: 20
+  num_inference_steps: 10
   shape_meta: ${shape_meta}
 
 
@@ -56,7 +56,7 @@ ema:
 data:
   batch_size: 128
   num_workers: 4
-  data_root: './param_data/process_data.pt'
+  data_root: '/gfshome/PolicyGenerator/PolicyGenerator/param_data/process_data.pt'
 
 
 optimizer:
@@ -82,14 +82,12 @@ train:
   max_train_steps: null
   max_val_steps: null
   tqdm_interval_sec: 1.0
-  finetune: False
-  pretrain_model: './pretrain_model/last-model.torch'
 
 logging:
   group: ${exp_name}
   id: null
   mode: online
-  name: ${train.seed}_${data.batch_size}_${optimizer.lr}_${policy.num_inference_steps}
+  name: ${train.seed}_${data.batch_size}_${optimizer.lr}
   project: policy_generator
   resume: true
   tags:
