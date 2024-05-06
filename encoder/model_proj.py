@@ -14,6 +14,7 @@ def build_encoder(n_embd, encoder_depth, input_splits):
         for _ in range(encoder_depth - 1):
             in_proj.append(nn.GELU())
             in_proj.append(nn.Linear(n_embd, n_embd, bias=False))
+            in_project.append(nn.LayerNorm())
         in_proj = nn.Sequential(*in_proj)
         input_parameter_projections.append(in_proj)
     return input_parameter_projections
@@ -24,6 +25,7 @@ def build_decoder(n_embd, decoder_depth, output_splits):
     for output_chunk_size in output_splits:
         out_proj = []
         for _ in range(decoder_depth - 1):
+            out_project.append(nn.LayerNorm())
             out_proj.append(nn.Linear(n_embd, n_embd, bias=False))
             out_proj.append(nn.GELU())
         out_proj.append(nn.Linear(n_embd, output_chunk_size, bias=False))
