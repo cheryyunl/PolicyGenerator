@@ -55,16 +55,21 @@ ema:
 
 data:
   batch_size: 128
-  num_workers: 4
-  data_root: '/gfshome/PolicyGenerator/PolicyGenerator/param_data/process_data.pt'
+  num_workers: 8
+  data_root: '/home/cheryll/PolicyGenerator/dataset/process_data.pt'
 
+eval:
+  env_name: 'drawer-close'
+  ckpt_dir: '/home/cheryll/PolicyGenerator/pretrain_model/5-task-generator.torch'
+  encoder_dir: '/home/cheryll/PolicyGenerator/pretrain_model/encoder.ckpt'
+  data_dir: '/home/cheryll/PolicyGenerator/dataset/test_data/unseen/processed/drawer-close.pt'
 
 optimizer:
   _target_: torch.optim.AdamW
   lr: 1.0e-4
   betas: [0.95, 0.999]
   eps: 1.0e-8
-  weight_decay: 5.0e-4
+  weight_decay: 1.0e-6
 
 train:
   device: "cuda:0"
@@ -73,15 +78,16 @@ train:
   resume: False
   lr_scheduler: cosine
   lr_warmup_steps: 500
-  num_epochs: 1000
+  num_epochs: 800
   gradient_accumulate_every: 1
   use_ema: True
-  checkpoint_every: 10
+  checkpoint_every: 5
   val_every: 1
   sample_every: 5
   max_train_steps: null
   max_val_steps: null
   tqdm_interval_sec: 1.0
+  finetune: False
 
 logging:
   group: ${exp_name}

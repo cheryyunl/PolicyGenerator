@@ -47,8 +47,8 @@ class EvalWorkspace:
 
         self.normalizer = LinearNormalizer()
 
-        ckpt_path = './pretrain_model/last-model.torch'
-        encoder_path = './pretrain_model/param_encoder.ckpt'
+        ckpt_path = cfg.eval.ckpt_dir
+        encoder_path =  cfg.eval.encoder_dir
 
         self.param_encoder = EncoderDecoder(1024, 1, 1, 0.0001, 0.001)
         self.load_checkpoint(ckpt_path, evaluate=True)
@@ -68,17 +68,48 @@ class EvalWorkspace:
         param = self.param_encoder.decode(nparam)
 
         print("shape of param: ", param.shape)
-        avg_reward, avg_success, avg_success_time = display_model(param, env)
+        avg_reward_list, avg_success_list, avg_success_time_list = display_model(param, env)
+        avg_reward = np.average(avg_reward_list)
+        avg_success = np.average(avg_success_list)
+        avg_success_time = np.average(avg_success_time_list)
+
+        max_reward = np.max(avg_reward_list)
+        min_time = np.min(avg_success_time_list)
 
         print("After diffusion generation.")
 
         gen_param = self.param_encoder.decode(pred_param)
         print("shape of generated param: ", gen_param.shape)
-        gen_avg_reward, gen_avg_success, gen_avg_success_time = display_model(gen_param, env)
+        gen_avg_reward_list, gen_avg_success_list, gen_avg_success_time_list = display_model(gen_param, env)
+        gen_avg_reward = np.average(gen_avg_reward_list)
+        gen_avg_success = np.average(gen_avg_success_list)
+        gen_avg_success_time = np.average(gen_avg_success_time_list)
+
+        gen_max_reward = np.max(gen_avg_reward_list)
+        gen_min_time = np.min(gen_avg_success_time_list)
+
+
+        gen_avg_reward_list.sort(reverse=True)
+        gen_avg_success_list.sort(reverse=True)
+        gen_avg_success_time_list.sort(reverse=False)
+
+        gen_top_5_rewards = np.average(gen_avg_reward_list[:5])
+        gen_top_10_rewards = np.average(gen_avg_reward_list[:10])
+        gen_top_5_success = np.average(gen_avg_success_list[:5])
+        gen_top_10_success = np.average(gen_avg_success_list[:10])
+        gen_top_5_success_time = np.average(gen_avg_success_time_list[:5])
+        gen_top_10_success_time = np.average(gen_avg_success_time_list[:10])
 
 
         print("Avg. Reward: {}, Avg. Success: {}, Avg Length: {}".format(round(avg_reward, 2), round(avg_success,2), round(avg_success_time,2)))
+        print("Before generation, Max Reward: {}, Min Episode Length: {}".format(round(max_reward, 2), round(min_time,2)))
+
         print("After Generated, Avg. Reward: {}, Avg. Success: {}, Avg Length: {}".format(round(gen_avg_reward, 2), round(gen_avg_success,2), round(gen_avg_success_time,2)))
+        print("After generation, Max Reward: {}, Min Episode Length: {}".format(round(gen_max_reward, 2), round(gen_min_time,2)))
+        print("Generated Top 5 Reward: {}, Top 10 Reward: {}".format(round(gen_top_5_rewards, 2), round(gen_top_10_rewards,2)))
+        print("Generated Top 5 Success Rate: {}, Top 10 Success Rate: {}".format(round(gen_top_5_success, 2), round(gen_top_10_success,2)))
+        print("Generated Top 5 Success Time: {}, Top 10 Success Time: {}".format(round(gen_top_5_success_time, 2), round(gen_top_10_success_time,2)))
+
 
 
     def load_encoder(self, encoder_path, evaluate=True):
@@ -110,9 +141,10 @@ class EvalWorkspace:
 
 def main(cfg):
     workspace = EvalWorkspace(cfg)
-    data_path = './param_data/process_window_open.pt'
+    env_name = cfg.eval.env_name
+    data_path = cfg.eval.data_dir
     data = torch.load(data_path)
-    workspace.rollout(data, env='window-open')
+    workspace.rollout(data, env=env_name)
 
 if __name__ == "__main__":
     main()
