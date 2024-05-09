@@ -97,7 +97,7 @@ mw_config = Config({
     
     "env_name": "window-open-v2-goal-observable", 
     "eval": True,
-    "eval_episodes": 1,
+    "eval_episodes": 10,
     "eval_interval": 10,
     "replay_size": 1000000,
 

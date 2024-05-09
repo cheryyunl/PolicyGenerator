@@ -2,8 +2,6 @@ import torch
 import gym
 import numpy as np
 from gym import wrappers
-import matplotlib.pyplot as plt 
-from matplotlib import animation 
 from display.config import mw_config
 from display.policy import SAC
 from copy import copy
@@ -26,13 +24,9 @@ def display_model(ckpt, env_name):
     config.device = ckpt.device
 
     agent = SAC(env.observation_space.shape[0], env.action_space, config)
-    avg_reward = 0.
-    avg_success = 0.
-    avg_success_time = 0.
-
-    test_reward = 0.
-    test_success = 0.
-    test_success_time = 0.
+    avg_reward_list = []
+    avg_success_list = []
+    avg_success_time_list = []
 
     ckpt_num = len(ckpt)
     print("{} parameters evaluate".format(ckpt_num))
@@ -77,14 +71,11 @@ def display_model(ckpt, env_name):
         print("Env: {}, Test Episodes: {}, Avg. Reward: {}, Avg. Success: {}".format(config.env_name, config.eval_episodes, round(test_reward, 2), round(test_success,2)))
         print("----------------------------------------")
 
-        avg_reward += test_reward
-        avg_success += test_success
-        avg_success_time += test_success_time
+        avg_reward_list.append(test_reward)
+        avg_success_list.append(test_success)
+        avg_success_time_list.append(test_success_time)
     
-    avg_reward /= ckpt_num
-    avg_success /= ckpt_num
-    avg_success_time /= ckpt_num
     env.close()
-    return avg_reward, avg_success, avg_success_time
+    return avg_reward_list, avg_success_list, avg_success_time_list
     
 
