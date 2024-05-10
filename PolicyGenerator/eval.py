@@ -68,13 +68,17 @@ class EvalWorkspace:
         param = self.param_encoder.decode(nparam)
 
         print("shape of param: ", param.shape)
-        avg_reward_list, avg_success_list, avg_success_time_list = display_model(param, env)
-        avg_reward = np.average(avg_reward_list)
-        avg_success = np.average(avg_success_list)
-        avg_success_time = np.average(avg_success_time_list)
 
-        max_reward = np.max(avg_reward_list)
-        min_time = np.min(avg_success_time_list)
+        test_before = True
+
+        if test_before: 
+            avg_reward_list, avg_success_list, avg_success_time_list = display_model(param, env)
+            avg_reward = np.average(avg_reward_list)
+            avg_success = np.average(avg_success_list)
+            avg_success_time = np.average(avg_success_time_list)
+
+            max_reward = np.max(avg_reward_list)
+            min_time = np.min(avg_success_time_list)
 
         print("After diffusion generation.")
 
@@ -100,9 +104,9 @@ class EvalWorkspace:
         gen_top_5_success_time = np.average(gen_avg_success_time_list[:5])
         gen_top_10_success_time = np.average(gen_avg_success_time_list[:10])
 
-
-        print("Avg. Reward: {}, Avg. Success: {}, Avg Length: {}".format(round(avg_reward, 2), round(avg_success,2), round(avg_success_time,2)))
-        print("Before generation, Max Reward: {}, Min Episode Length: {}".format(round(max_reward, 2), round(min_time,2)))
+        if test_before: 
+            print("Avg. Reward: {}, Avg. Success: {}, Avg Length: {}".format(round(avg_reward, 2), round(avg_success,2), round(avg_success_time,2)))
+            print("Before generation, Max Reward: {}, Min Episode Length: {}".format(round(max_reward, 2), round(min_time,2)))
 
         print("After Generated, Avg. Reward: {}, Avg. Success: {}, Avg Length: {}".format(round(gen_avg_reward, 2), round(gen_avg_success,2), round(gen_avg_success_time,2)))
         print("After generation, Max Reward: {}, Min Episode Length: {}".format(round(gen_max_reward, 2), round(gen_min_time,2)))
