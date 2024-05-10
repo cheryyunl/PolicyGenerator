@@ -43,12 +43,12 @@ class MetaWorldSparseWrapper(gym.Wrapper):
 def metaworld_env(env_name, seed, episode_length, reward_type="dense"):
 	if reward_type == "dense":
 		print("RUNNING Dense TASKS")
-		env = metaworld.envs.ALL_V2_ENVIRONMENTS_GOAL_OBSERVABLE[env_name](seed=620)
+		env = metaworld.envs.ALL_V2_ENVIRONMENTS_GOAL_OBSERVABLE[env_name](seed=seed)
 		env = MetaWorldWrapper(env)
 		env = TimeLimit(env, max_episode_steps=episode_length)
 	elif reward_type == "sparse":
 		print("RUNNING Sparse TASKS")
-		env = metaworld.envs.ALL_V2_ENVIRONMENTS_GOAL_OBSERVABLE[env_name](seed=620)
+		env = metaworld.envs.ALL_V2_ENVIRONMENTS_GOAL_OBSERVABLE[env_name](seed=seed)
 		env = MetaWorldSparseWrapper(env)
 		env = TimeLimit(env, max_episode_steps=episode_length)
 	return env

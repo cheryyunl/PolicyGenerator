@@ -86,7 +86,7 @@ class ARGConfig(Config):
             raise TypeError(f"unknown type (str, tuple, list, int, float, bool), but get {typeinst}")
 
 mw_config = Config({
-    "seed": 620,
+    "seed": 720,
     "tag": "metaworld",
     "algor": "SAC",
     "start_steps": 5e3,

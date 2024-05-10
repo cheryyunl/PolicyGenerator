@@ -14,8 +14,6 @@ from display.utils import param_to_policy
 
 def display_model(ckpt, env_name):
     config = mw_config
-    config.hidden_size = 128
-    config.seed = 620
 
     config.env_name = env_name + '-v2-goal-observable'
     env = build_environment(config)
@@ -68,7 +66,7 @@ def display_model(ckpt, env_name):
         test_success = np.average(eval_success_list)
         test_success_time = np.average(eval_success_time_list)
         print("----------------------------------------")
-        print("Env: {}, Test Episodes: {}, Avg. Reward: {}, Avg. Success: {}".format(config.env_name, config.eval_episodes, round(test_reward, 2), round(test_success,2)))
+        print("Env: {}, Avg. Reward: {}, Avg. Success: {}, Avg Length: {}".format(config.env_name, round(test_reward, 2), round(test_success,2), round(test_success_time, 2)))
         print("----------------------------------------")
 
         avg_reward_list.append(test_reward)
