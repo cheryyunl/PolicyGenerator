@@ -84,14 +84,15 @@ def display_model(ckpt, env_name):
         env.close()
         avg_reward_list.sort(reverse=True)
         avg_success_list.sort(reverse=True)
-        avg_success_time_list.sort(reverse=True)
+        avg_success_time_list.sort(reverse=False)
+
         mean_reward_list.append(avg_reward_list)
         mean_success_list.append(avg_success_list)
         mean_success_time_list.append(avg_success_time_list)
 
-        reward_list = np.mean(mean_reward_list, axis=0)
-        success_list = np.mean(mean_success_list, axis=0)
-        success_time_list = np.mean(mean_success_time_list, axis=0)
+    reward_list = np.mean(mean_reward_list, axis=0)
+    success_list = np.mean(mean_success_list, axis=0)
+    success_time_list = np.mean(mean_success_time_list, axis=0)
 
     return reward_list, success_list, success_time_list
     

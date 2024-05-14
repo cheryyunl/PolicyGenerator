@@ -86,7 +86,7 @@ class ARGConfig(Config):
             raise TypeError(f"unknown type (str, tuple, list, int, float, bool), but get {typeinst}")
 
 mw_config = Config({
-    "seed": [720, 920, 725, 625, 623],
+    "seed": [720, 920],
     "tag": "metaworld",
     "algor": "SAC",
     "start_steps": 5e3,
@@ -97,7 +97,7 @@ mw_config = Config({
     
     "env_name": "window-open-v2-goal-observable", 
     "eval": True,
-    "eval_episodes": 10,
+    "eval_episodes": 1,
     "eval_interval": 10,
     "replay_size": 1000000,
 
