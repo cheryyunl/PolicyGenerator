@@ -82,6 +82,9 @@ def display_model(ckpt, env_name):
             avg_success_time_list.append(test_success_time)
         
         env.close()
+        avg_reward_list.sort(reverse=True)
+        avg_success_list.sort(reverse=True)
+        avg_success_time_list.sort(reverse=True)
         mean_reward_list.append(avg_reward_list)
         mean_success_list.append(avg_success_list)
         mean_success_time_list.append(avg_success_time_list)
