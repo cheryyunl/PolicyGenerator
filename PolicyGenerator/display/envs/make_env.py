@@ -36,7 +36,15 @@ def build_environment(config):
 	# * Meta-World (reward_type = sparse/dense)
 	if (config.env_name).endswith("goal-observable"):   # metaworld.envs.ALL_V2_ENVIRONMENTS_GOAL_OBSERVABLE.keys():
 		from .metaworld_env import metaworld_env
-		env = metaworld_env(config.env_name, config.seed, episode_length=500, reward_type=config.reward_type)
+		if isinstance(config.seed, list):
+			env = []
+			seeds = config.seed
+			for i in range(len(seeds)):
+				seed = seeds[i]
+				env.append(metaworld_env(config.env_name, seed, episode_length=500, reward_type=config.reward_type))
+		else:
+			env = metaworld_env(config.env_name, config.seed, episode_length=500, reward_type=config.reward_type)
+			env = [env]
 	
 	# * panda-gym (control_type=joints/ends, reward_type=sparse/dense, render_mode="rgb_array", noise_type=False/True)
 	elif (config.env_name).startswith("Panda"):                              # in panda_gym.ENV_IDS:

@@ -16,64 +16,80 @@ def display_model(ckpt, env_name):
     config = mw_config
 
     config.env_name = env_name + '-v2-goal-observable'
-    env = build_environment(config)
-    torch.manual_seed(config.seed)
+    envs = build_environment(config)
 
     config.device = ckpt.device
-
-    agent = SAC(env.observation_space.shape[0], env.action_space, config)
-    avg_reward_list = []
-    avg_success_list = []
-    avg_success_time_list = []
 
     ckpt_num = len(ckpt)
     print("{} parameters evaluate".format(ckpt_num))
 
-    for i in range(ckpt_num):
-        state_dict = param_to_policy(ckpt[i], agent.policy.state_dict())
-        agent.policy.load_state_dict(state_dict)
+    mean_reward_list = []
+    mean_success_list = []
+    mean_success_time_list = []
+
+    seeds = config.seed
+
+    for i, env in enumerate(envs):
+        print("Now evaluate on {}, seed = {}".format(config.env_name, seeds[i]))
+        agent = SAC(env.observation_space.shape[0], env.action_space, config)
+        torch.manual_seed(seeds[i])
+        avg_reward_list = []
+        avg_success_list = []
+        avg_success_time_list = []
+
+        for i in range(ckpt_num):
+            state_dict = param_to_policy(ckpt[i], agent.policy.state_dict())
+            agent.policy.load_state_dict(state_dict)
 
 
-        eval_reward_list = []
-        eval_success_list = []
-        eval_success_time_list = []
+            eval_reward_list = []
+            eval_success_list = []
+            eval_success_time_list = []
 
-        for i in range(config.eval_episodes):
-            state = env.reset()
-            episode_reward = 0
-            done = False
-            first_success_time = 0
-            success = False
-            rewards = []
-            while not done:
-                action = agent.select_action(state, evaluate=True)
-                next_state, reward, done, info = env.step(action)
-                
-                if 'success' in info.keys():
-                    success |= bool(info["success"])
-
-                    if not success:
-                        first_success_time += 1
+            for i in range(config.eval_episodes):
+                state = env.reset()
+                episode_reward = 0
+                done = False
+                first_success_time = 0
+                success = False
+                rewards = []
+                while not done:
+                    action = agent.select_action(state, evaluate=True)
+                    next_state, reward, done, info = env.step(action)
                     
-                episode_reward += reward
-                state = next_state
-            
-            eval_success_list.append(success)
-            eval_reward_list.append(episode_reward)
-            eval_success_time_list.append(first_success_time)
+                    if 'success' in info.keys():
+                        success |= bool(info["success"])
 
-        test_reward = np.average(eval_reward_list)
-        test_success = np.average(eval_success_list)
-        test_success_time = np.average(eval_success_time_list)
-        print("----------------------------------------")
-        print("Env: {}, Avg. Reward: {}, Avg. Success: {}, Avg Length: {}".format(config.env_name, round(test_reward, 2), round(test_success,2), round(test_success_time, 2)))
-        print("----------------------------------------")
+                        if not success:
+                            first_success_time += 1
+                        
+                    episode_reward += reward
+                    state = next_state
+                
+                eval_success_list.append(success)
+                eval_reward_list.append(episode_reward)
+                eval_success_time_list.append(first_success_time)
 
-        avg_reward_list.append(test_reward)
-        avg_success_list.append(test_success)
-        avg_success_time_list.append(test_success_time)
-    
-    env.close()
-    return avg_reward_list, avg_success_list, avg_success_time_list
+            test_reward = np.average(eval_reward_list)
+            test_success = np.average(eval_success_list)
+            test_success_time = np.average(eval_success_time_list)
+            print("----------------------------------------")
+            print("Env: {}, Avg. Reward: {}, Avg. Success: {}, Avg Length: {}".format(config.env_name, round(test_reward, 2), round(test_success,2), round(test_success_time, 2)))
+            print("----------------------------------------")
+
+            avg_reward_list.append(test_reward)
+            avg_success_list.append(test_success)
+            avg_success_time_list.append(test_success_time)
+        
+        env.close()
+        mean_reward_list.append(avg_reward_list)
+        mean_success_list.append(avg_success_list)
+        mean_success_time_list.append(avg_success_time_list)
+
+        reward_list = np.mean(mean_reward_list, axis=0)
+        success_list = np.mean(mean_success_list, axis=0)
+        success_time_list = np.mean(mean_success_time_list, axis=0)
+
+    return reward_list, success_list, success_time_list
     
 
