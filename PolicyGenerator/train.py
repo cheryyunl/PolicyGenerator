@@ -23,6 +23,7 @@ from dataset import Dataset
 from policy_generator.model.common.normalizer import LinearNormalizer
 from policy_generator.policy.policy_generator import PolicyGenerator
 from policy_generator.model.common.lr_scheduler import get_scheduler
+from torch.optim.lr_scheduler import CosineAnnealingWarmRestarts
 from policy_generator.model.diffusion.ema_model import EMAModel
 from policy_generator.common.checkpoint_util import TopKCheckpointManager
 from policy_generator.common.pytorch_util import dict_apply, optimizer_to
@@ -46,9 +47,6 @@ class Workspace:
         # configure model
         self.model: PolicyGenerator  = hydra.utils.instantiate(cfg.policy)
 
-        self.optimizer = hydra.utils.instantiate(
-            cfg.optimizer, params=self.model.parameters())
-
         self.ema_model: PolicyGenerator  = None
         if cfg.train.use_ema:
             try:
@@ -56,13 +54,16 @@ class Workspace:
             except: # minkowski engine could not be copied. recreate it
                 self.ema_model = hydra.utils.instantiate(cfg.policy)
 
+        self.optimizer = hydra.utils.instantiate(
+            cfg.optimizer, params=self.model.parameters())
+
         # configure training state
         self.global_step = 0
         self.epoch = 0
         self.best_score = 10
         self.val_score = 0
 
-        self.output_dir = './outputs/generator-{}'.format(datetime.datetime.now().strftime("%Y-%m-%d_%H"))
+        self.output_dir = '/path/outputs/generator-{}'.format(datetime.datetime.now().strftime("%Y-%m-%d_%H_%M"))
         if not os.path.exists(self.output_dir):
             os.makedirs(self.output_dir)
 
@@ -93,10 +94,6 @@ class Workspace:
                 print(f"Resuming from checkpoint {lastest_ckpt_path}")
                 self.load_checkpoint(path=lastest_ckpt_path)
 
-        if cfg.train.finetune:
-            pretrain_path = cfg.train.pretrain_model
-            self.load_checkpoint(pretrain_path, evaluate=False)
-
         dataset = Dataset(cfg.data) 
         normalizer = dataset.get_normalizer()
         train_dataloader = dataset.train_dataloader()
@@ -107,17 +104,7 @@ class Workspace:
         if cfg.train.use_ema:
             self.ema_model.set_normalizer(normalizer)
         
-        lr_scheduler = get_scheduler(
-            cfg.train.lr_scheduler,
-            optimizer=self.optimizer,
-            num_warmup_steps=cfg.train.lr_warmup_steps,
-            num_training_steps=(
-                len(train_dataloader) * cfg.train.num_epochs) \
-                    // cfg.train.gradient_accumulate_every,
-            # pytorch assumes stepping LRScheduler every epoch
-            # however huggingface diffusers steps it every batch
-            last_epoch=self.global_step-1
-        )
+        lr_scheduler = CosineAnnealingWarmRestarts(self.optimizer, T_0=10, T_mult=2, eta_min=1e-9)
 
         # configure ema
         ema: EMAModel = None
@@ -132,8 +119,8 @@ class Workspace:
         print(f"[WandB] name: {cfg.logging.name}")
         print("-----------------------------")
 
-        experiment_name = cfg.logging.name + datetime.datetime.now().strftime("%Y-%m-%d_%H")
-        run_id = '{}-{}-{}-{}'.format(cfg.train.seed, cfg.optimizer.lr, cfg.data.batch_size, datetime.datetime.now().strftime("%Y-%m-%d_%H"))
+        experiment_name = cfg.logging.name
+        run_id = '{}-{}-{}-{}-{}-{}'.format(cfg.policy.kernel_size, cfg.optimizer.lr, cfg.data.batch_size, cfg.policy.use_traj, cfg.policy.use_task, datetime.datetime.now().strftime("%Y-%m-%d_%H_%M"))
 
         wandb_run = wandb.init(
         project = str(cfg.logging.project),
@@ -144,7 +131,10 @@ class Workspace:
             "weight_decay": cfg.optimizer.weight_decay,
             "eps": cfg.optimizer.eps,
             "num_epochs": cfg.train.num_epochs,
-            "num_inference_steps": cfg.policy.num_inference_steps
+            "num_inference_steps": cfg.policy.num_inference_steps,
+            "kernel_size": cfg.policy.kernel_size,
+            "use_traj": cfg.policy.use_traj,
+            "use_task": cfg.policy.use_task
         },
         name = experiment_name,
         id = run_id,
@@ -253,6 +243,12 @@ class Workspace:
                         # log epoch average validation loss
                         step_log['val_loss'] = val_loss
                         self.val_score = val_loss
+            
+            # test_traj = batch['traj']
+            # test_result = self.predict(test_traj)
+            # print(test_result['param'].shape)
+            # run diffusion sampling on a training batch
+            # pass
 
             # checkpoint
             if (self.epoch % cfg.train.checkpoint_every) == 0:
@@ -286,24 +282,25 @@ class Workspace:
             if self.val_score < self.best_score:
                 self.best_score = self.val_score
                 ckpt_path = self.output_dir  + '/' + 'best.torch'
-                print(f'Saving the best model with val loss={self.val_score} on {self.epoch}')
+                print(f'Saving the best model with {self.val_score} on {self.epoch}')
                 torch.save({'model': self.model.state_dict(),
                             'optimizer': self.optimizer.state_dict(),
                             'normalizer': self.normalizer.state_dict()}, ckpt_path)
         elif tag == 'last':
-            print(f'Saving the last model with val loss={self.val_score} on {self.epoch}')
+            print(f'Saving the last model with {self.val_score} on {self.epoch}')
             ckpt_path = self.output_dir  + '/' + 'last-model.torch'
             torch.save({'model': self.model.state_dict(),
                         'optimizer': self.optimizer.state_dict(),
                         'normalizer': self.normalizer.state_dict()}, ckpt_path)
 
-    def load_checkpoint(self, ckpt_path, evaluate=True):
+    def load_checkpoint(self, evaluate=False):
+        ckpt_path = self.output_dir + '/' + 'best.torch'
         print('Loading models from {}'.format(ckpt_path))
         if ckpt_path is not None:
             checkpoint = torch.load(ckpt_path)
             self.model.load_state_dict(checkpoint['model'])
             self.optimizer.load_state_dict(checkpoint['optimizer'])
-            # self.normalizer.load_state_dict(checkpoint['normalizer'])
+            self.normalizer.load_state_dict(checkpoint['normalizer'])
 
             if evaluate:
                 self.model.eval()

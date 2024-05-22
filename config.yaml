@@ -1,0 +1,12 @@
+defaults:
+  - encoder: config.yaml
+  - trajectory: config_embed.yaml
+  - PolicyGenerator: config.yaml
+
+shape_meta: &shape_meta
+  trajectory:
+    shape: [128]
+  params:
+    shape: [2, 1024]
+
+num_trajectory: 1

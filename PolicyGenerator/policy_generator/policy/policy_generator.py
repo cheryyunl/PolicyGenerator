@@ -13,7 +13,6 @@ from policy_generator.policy.base_policy import BasePolicy
 from policy_generator.model.diffusion.conditional_unet1d import ConditionalUnet1D
 from policy_generator.common.pytorch_util import dict_apply
 from policy_generator.common.model_util import print_params
-from policy_generator.model.diffusion.mask_generator import LowdimMaskGenerator
 
 class PolicyGenerator(BasePolicy):
     def __init__(self, 
@@ -29,7 +28,9 @@ class PolicyGenerator(BasePolicy):
             use_down_condition=True,
             use_mid_condition=True,
             use_up_condition=True,
-            trajectory_feature_dim = 128,
+            use_traj=True,
+            use_task=False,
+            concat=False,
 
             param_encoder = '',
             traj_embedding = '',
@@ -38,12 +39,17 @@ class PolicyGenerator(BasePolicy):
         super().__init__()
 
         self.condition_type = condition_type
+        self.use_traj = use_traj
+        self.use_task = use_task
+        self.concat = concat
 
         # parse shape_meta
         parameters_shape = shape_meta['params']['shape']
         trajectory_shape = shape_meta['trajectory']['shape']
+        task_shape = shape_meta['task']['shape']
         self.parameters_shape = parameters_shape
-        trajectory_dim = trajectory_shape[0]
+        trajectory_feature_dim = trajectory_shape[0]
+        task_feature_dim = task_shape[0]
         print("parameters_shape: ", parameters_shape)
         if len(parameters_shape) == 1:
             parameters_dim = parameters_shape[0]
@@ -54,11 +60,14 @@ class PolicyGenerator(BasePolicy):
 
         # create diffusion model
         input_dim = parameters_dim
-        cond_dim = trajectory_feature_dim
-        if "cross_attention" in self.condition_type:
-            global_cond_dim = trajectory_feature_dim
-        else:
+        if use_traj:
             global_cond_dim = trajectory_feature_dim * num_trajectory
+        elif use_task:
+            global_cond_dim = task_feature_dim * num_trajectory
+        elif concat:
+            global_cond_dim = (trajectory_feature_dim + task_feature_dim) * num_trajectory
+        else:
+            raise NotImplementedError()
 
 
         model = ConditionalUnet1D(
@@ -79,17 +88,10 @@ class PolicyGenerator(BasePolicy):
         
         
         self.noise_scheduler_pc = copy.deepcopy(noise_scheduler)
-
-        self.mask_generator = LowdimMaskGenerator(
-            action_dim=parameters_dim,
-            obs_dim=0,
-            max_n_obs_steps=1,
-            fix_obs_steps=True,
-            action_visible=False
-        )
         
         self.normalizer = LinearNormalizer()
         self.trajectory_feature_dim = trajectory_feature_dim
+        self.task_feature_dim = task_feature_dim
         self.parameters_dim = parameters_dim
         self.num_trajectory = num_trajectory
         self.kwargs = kwargs
@@ -158,14 +160,13 @@ class PolicyGenerator(BasePolicy):
 
         # condition through global feature
         # ntraj_dict = dict_apply(traj_dict, lambda x: x[:,:To,...].reshape(-1,*x.shape[2:]))
-        ntraj = traj_dict['traj']
-        global_cond = None
-        if "cross_attention" in self.condition_type:
-            # treat as a sequence
-            global_cond = ntraj.reshape(B, self.num_trajectory, -1)
+        if self.use_traj:
+            ntraj = traj_dict['traj']
+        elif self.use_task:
+            ntraj = traj_dict['task']
         else:
-            # reshape back to B, Do
-            global_cond = ntraj.reshape(B, -1)
+            ntraj = torch.cat((traj_dict['traj'], traj_dict['task']), dim=1)
+        global_cond = ntraj.reshape(B, -1)
         # cond_data = torch.zeros(size=(B, 1, Da), device=device, dtype=dtype)
         # run sampling
         nsample = self.conditional_sample(
@@ -174,7 +175,6 @@ class PolicyGenerator(BasePolicy):
             **self.kwargs)
         
         # unnormalize prediction
-        nsample.reshape(-1, 2, 1024)
         params_pred = self.normalizer['param'].unnormalize(nsample)
 
         # result = {'param': parameters_pred}
@@ -189,21 +189,20 @@ class PolicyGenerator(BasePolicy):
         # normalize input
         
         batch = self.normalizer.normalize(batch)
-        ntraj = batch['traj']
+        if self.use_traj:
+            ntraj = batch['traj']
+        elif self.use_task:
+            ntraj = batch['task']
+        else:
+            ntraj = torch.cat((batch['traj'], batch['task']), dim=1)
         nparameters = batch['param']
         
         batch_size = nparameters.shape[0]
         # nparameters = nparameters.reshape(batch_size, 1, self.parameters_dim)
         global_cond = None
         parameters = nparameters
-        cond_data = parameters
 
-        if "cross_attention" in self.condition_type:
-            # treat as a sequence
-            global_cond = ntraj.reshape(batch_size, self.num_trajectory, -1)
-        else:
-            # reshape back to B, Do
-            global_cond = ntraj.reshape(batch_size, -1)
+        global_cond = ntraj.reshape(batch_size, -1)
 
         # Sample noise that we'll add to the images
         noise = torch.randn(parameters.shape, device=parameters.device)
