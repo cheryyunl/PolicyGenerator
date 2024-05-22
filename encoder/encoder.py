@@ -39,8 +39,11 @@ class Encoder(BaseSystem):
         return {'loss': loss}
 
     def build_model(self, **kwargs):
-        n_embd = self.model_cfg.n_embd
-        self.model = EncoderDecoder(n_embd)
+        self.model = EncoderDecoder(self.model_cfg.n_embd,
+                                    self.model_cfg.encoder_depth,
+                                    self.model_cfg.decoder_depth,
+                                    self.model_cfg.input_noise_factor,
+                                    self.model_cfg.latent_noise_factor)
         if self.train_cfg.finetune:
             self.load_encoder(self.train_cfg.pretrain_model)
         return self.model
