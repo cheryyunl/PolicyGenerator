@@ -22,7 +22,6 @@ from hydra.core.hydra_config import HydraConfig
 from dataset import Dataset
 from policy_generator.model.common.normalizer import LinearNormalizer
 from policy_generator.model.encoder.param_encoder import EncoderDecoder
-from policy_generator.model.encoder.trajectory_embedding import Embedding
 from policy_generator.policy.policy_generator import PolicyGenerator
 from display.display_policy import display_model
 
@@ -60,9 +59,10 @@ class EvalWorkspace:
     def rollout(self, data, env):
         nparam = data['param']
         ntraj = data['traj']
+        ntask = data['task']
 
 
-        eval_dict = {'traj': ntraj}
+        eval_dict = {'traj': ntraj, 'task': ntask}
         pred_param = self.model.predict_paremeters(eval_dict)
         nparam = nparam.reshape(-1, 2, 1024)
         param = self.param_encoder.decode(nparam)

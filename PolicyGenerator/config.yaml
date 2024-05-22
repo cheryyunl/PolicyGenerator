@@ -5,6 +5,8 @@ task_name: policy_generator
 shape_meta: &shape_meta
   trajectory:
     shape: [128]
+  task:
+    shape: [128]
   params:
     shape: [2, 1024]
 
@@ -25,7 +27,7 @@ policy:
   - 512
   - 1024
   - 2048
-  kernel_size: 5
+  kernel_size: 3
   n_groups: 8
   num_trajectory: ${num_trajectory}
 
@@ -43,6 +45,9 @@ policy:
 
   num_inference_steps: 10
   shape_meta: ${shape_meta}
+  use_traj: False
+  use_task: False
+  concat: True
 
 
 ema:
@@ -56,13 +61,13 @@ ema:
 data:
   batch_size: 128
   num_workers: 8
-  data_root: '/gfshome/PolicyGenerator/PolicyGenerator/param_data/process_data.pt'
+  data_root: '/path/traindata'
 
 eval:
-  env_name: 'drawer-close'
-  ckpt_dir: '/home/cheryll/PolicyGenerator/pretrain_model/5-task-generator.torch'
-  encoder_dir: '/home/cheryll/PolicyGenerator/pretrain_model/encoder.ckpt'
-  data_dir: '/home/cheryll/PolicyGenerator/dataset/test_data/unseen/processed/drawer-close.pt'
+  env_name: ''
+  ckpt_dir: '/path/pretrain_model/diffusion.torch'
+  encoder_dir: '/path/pretrain_model/encoder.ckpt'
+  data_dir: '/path/testdata'
 
 optimizer:
   _target_: torch.optim.AdamW
